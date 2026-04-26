@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库管理后台 · 星辰科技</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+         font-size: 14px; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+
+  /* 顶栏 */
+  .topbar { display: flex; align-items: center; justify-content: space-between;
+            background: #fff; border-bottom: 1px solid #e8e8e4; padding: 0 24px;
+            height: 52px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-weight: 500; font-size: 15px; }
+  .logo span { color: #888; font-weight: 400; margin-left: 8px; font-size: 13px; }
+  .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #666; }
+  .badge { background: #fff0e6; color: #b45309; font-size: 11px; padding: 2px 8px;
+           border-radius: 20px; font-weight: 500; }
+
+  /* 布局 */
+  .layout { display: flex; min-height: calc(100vh - 52px); }
+
+  /* 侧边栏 */
+  .sidebar { width: 180px; background: #fff; border-right: 1px solid #e8e8e4;
+             padding: 16px 10px; flex-shrink: 0; }
+  .nav-section { font-size: 11px; color: #999; padding: 4px 10px 8px; letter-spacing: .5px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+              border-radius: 6px; cursor: pointer; color: #555; font-size: 13px;
+              margin-bottom: 2px; transition: background .15s; user-select: none; }
+  .nav-item:hover { background: #f5f5f0; }
+  .nav-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 500; }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* 主内容区 */
+  .main { flex: 1; padding: 24px; overflow-y: auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* 统计卡片 */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: #fff; border: 1px solid #e8e8e4; border-radius: 10px; padding: 16px; }
+  .stat-val { font-size: 26px; font-weight: 500; line-height: 1; margin-bottom: 6px; }
+  .stat-val.ok { color: #16a34a; }
+  .stat-val.warn { color: #d97706; }
+  .stat-label { font-size: 12px; color: #999; }
+
+  /* 卡片 */
+  .card { background: #fff; border: 1px solid #e8e8e4; border-radius: 10px;
+          padding: 16px 20px; margin-bottom: 16px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between;
+                 margin-bottom: 14px; }
+  .card-title { font-weight: 500; font-size: 14px; }
+
+  /* 按钮 */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+         border: 1px solid #ddd; border-radius: 6px; background: #fff; color: #333;
+         font-size: 13px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .btn:hover { background: #f5f5f5; }
+  .btn-primary { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+  .btn-primary:hover { background: #1e40af; }
+  .btn-danger { color: #dc2626; border-color: #fecaca; }
+  .btn-danger:hover { background: #fef2f2; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: #888; font-weight: 400; padding: 6px 12px;
+       border-bottom: 1px solid #f0f0ec; font-size: 12px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f7f7f4; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf8; }
+
+  /* 角色标签 */
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px;
+          font-weight: 500; margin-right: 3px; }
+  .pill-all   { background: #f1f0f8; color: #5b5b8a; }
+  .pill-hr    { background: #eff6ff; color: #1d4ed8; }
+  .pill-dev   { background: #f0fdf4; color: #15803d; }
+  .pill-admin { background: #fff7ed; color: #c2410c; }
+  .pill-manager { background: #fdf4ff; color: #7e22ce; }
+
+  /* 状态 */
+  .status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-ok { background: #16a34a; }
+  .dot-ing { background: #d97706; animation: pulse 1s infinite; }
+  .dot-err { background: #dc2626; }
+  .dot-pending { background: #9ca3af; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* 上传区 */
+  .upload-zone { border: 2px dashed #d1d5db; border-radius: 10px; padding: 32px;
+                 text-align: center; color: #888; transition: all .2s; cursor: pointer; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: #1d4ed8; background: #eff6ff; color: #1d4ed8; }
+  .upload-zone input { display: none; }
+  .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-hint { font-size: 12px; margin-top: 6px; }
+
+  /* 表单 */
+  .form-row { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+  .form-input { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px;
+                font-size: 13px; outline: none; transition: border .15s; }
+  .form-input:focus { border-color: #1d4ed8; }
+  .form-select { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px;
+                 font-size: 13px; background: #fff; outline: none; }
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+  .checkbox-item { display: flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; }
+
+  /* 提示 */
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 18px;
+           border-radius: 8px; font-size: 13px; color: #fff; z-index: 9999;
+           animation: slideIn .2s ease; pointer-events: none; }
+  .toast-success { background: #16a34a; }
+  .toast-error   { background: #dc2626; }
+  @keyframes slideIn { from{transform:translateY(12px);opacity:0} to{transform:none;opacity:1} }
+
+  /* 空状态 */
+  .empty { text-align: center; padding: 40px; color: #aaa; font-size: 13px; }
+
+  /* modal */
+  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.35);
+                display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .modal { background: #fff; border-radius: 12px; padding: 24px; width: 440px; max-width: 90vw; }
+  .modal-title { font-weight: 500; font-size: 15px; margin-bottom: 18px; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  /* 分隔线 */
+  hr { border: none; border-top: 1px solid #f0f0ec; margin: 16px 0; }
+
+  /* 文件预览行 */
+  .file-preview { display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+                  background: #f7f7f4; border-radius: 8px; margin-bottom: 14px; }
+  .file-icon { font-size: 24px; }
+  .file-name { font-weight: 500; font-size: 13px; }
+  .file-size { font-size: 12px; color: #888; }
+
+  .page-title { font-size: 18px; font-weight: 500; margin-bottom: 6px; }
+  .page-desc  { font-size: 13px; color: #888; margin-bottom: 20px; }
+
+  .progress-bar { height: 4px; background: #e8e8e4; border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; background: #1d4ed8; border-radius: 2px; transition: width .3s; }
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="topbar">
+  <div class="logo">星辰科技<span>知识库管理后台</span></div>
+  <div class="user-info">
+    <span>管理员 · Charlie</span>
+    <span class="badge">admin</span>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- 侧边栏 -->
+  <div class="sidebar">
+    <div class="nav-section">MAIN</div>
+    <div class="nav-item active" onclick="nav('docs')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="1" width="9" height="13" rx="1.5"/><path d="M5 5h4M5 8h4M5 11h2"/><path d="M11 4l3 3v7a1 1 0 01-1 1H6"/>
+      </svg>文档管理
+    </div>
+    <div class="nav-item" onclick="nav('upload')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M8 10V3M5 6l3-3 3 3"/><path d="M3 13h10"/>
+      </svg>上传文档
+    </div>
+    <div class="nav-section">ADMIN</div>
+    <div class="nav-item" onclick="nav('users')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>
+      </svg>用户管理
+    </div>
+  </div>
+
+  <!-- 主内容 -->
+  <div class="main">
+
+    <!-- 文档管理页 -->
+    <div class="page active" id="page-docs">
+      <div class="page-title">文档管理</div>
+      <div class="page-desc">管理知识库中的所有文档，查看索引状态和权限配置</div>
+
+      <div class="stats" id="stats-bar">
+        <div class="stat-card"><div class="stat-val" id="s-docs">—</div><div class="stat-label">文档总数</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-nodes">—</div><div class="stat-label">向量节点数</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-users">—</div><div class="stat-label">用户数</div></div>
+        <div class="stat-card"><div class="stat-val ok" id="s-status">—</div><div class="stat-label">索引健康</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">文档列表</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="loadDocs()">↻ 刷新</button>
+            <button class="btn btn-primary btn-sm" onclick="nav('upload')">+ 上传文档</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>文件名</th><th>格式</th><th>权限角色</th>
+              <th>节点数</th><th>上传时间</th><th>状态</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="docs-table-body">
+            <tr><td colspan="7" class="empty">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 上传页 -->
+    <div class="page" id="page-upload">
+      <div class="page-title">上传文档</div>
+      <div class="page-desc">上传文档后系统自动解析并建立向量索引，支持 PDF · DOCX · MD · XLSX</div>
+
+      <div class="card">
+        <!-- 上传区 -->
+        <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <div class="upload-icon">📄</div>
+          <div>点击选择文件，或将文件拖拽至此</div>
+          <div class="upload-hint">支持 PDF、DOCX、MD、TXT、XLSX · 单文件不超过 50MB</div>
+          <input type="file" id="file-input" accept=".pdf,.docx,.doc,.md,.txt,.xlsx,.xls" onchange="onFileSelected(this)">
+        </div>
+
+        <!-- 文件预览（选中后显示） -->
+        <div id="file-preview" style="display:none">
+          <hr>
+          <div class="file-preview">
+            <span class="file-icon" id="preview-icon">📄</span>
+            <div>
+              <div class="file-name" id="preview-name"></div>
+              <div class="file-size" id="preview-size"></div>
+            </div>
+          </div>
+
+          <!-- 权限配置 -->
+          <div class="form-row">
+            <label class="form-label">访问权限 <span style="color:#dc2626">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-item"><input type="checkbox" value="all"> 全员（all）</label>
+              <label class="checkbox-item"><input type="checkbox" value="hr"> HR（hr）</label>
+              <label class="checkbox-item"><input type="checkbox" value="dev"> 研发（dev）</label>
+              <label class="checkbox-item"><input type="checkbox" value="manager"> 管理层（manager）</label>
+              <label class="checkbox-item"><input type="checkbox" value="admin"> 管理员（admin）</label>
+            </div>
+            <div style="font-size:12px;color:#888;margin-top:6px">
+              提示：勾选"全员"则所有人可访问；勾选"hr"则 hr 和 admin 角色可访问（继承关系自动处理）
+            </div>
+          </div>
+
+          <!-- 进度 -->
+          <div id="upload-progress" style="display:none">
+            <div style="font-size:13px;color:#555;margin-bottom:4px" id="progress-text">正在上传…</div>
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn btn-primary" onclick="doUpload()" id="btn-upload">开始上传并索引</button>
+            <button class="btn" onclick="clearUpload()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 用户管理页 -->
+    <div class="page" id="page-users">
+      <div class="page-title">用户管理</div>
+      <div class="page-desc">管理系统用户，配置角色权限。角色决定用户可访问的知识库范围。</div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">用户列表</span>
+          <button class="btn btn-primary btn-sm" onclick="showAddUserModal()">+ 新增用户</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>用户名</th><th>姓名</th><th>角色</th><th>可访问标签</th><th>创建时间</th><th>操作</th></tr>
+          </thead>
+          <tbody id="users-table-body">
+            <tr><td colspan="6" class="empty">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 角色说明 -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">角色继承说明</span></div>
+        <table>
+          <thead><tr><th>角色</th><th>可访问的文档标签</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill pill-all">all</span></td><td>all</td><td>普通员工，仅全员文档</td></tr>
+            <tr><td><span class="pill pill-hr">hr</span></td><td>hr · all</td><td>HR，可见 HR 专属 + 全员文档</td></tr>
+            <tr><td><span class="pill pill-dev">dev</span></td><td>dev · all</td><td>研发，可见研发专属 + 全员文档</td></tr>
+            <tr><td><span class="pill pill-manager">manager</span></td><td>manager · hr · dev · all</td><td>管理层，可见大部分文档</td></tr>
+            <tr><td><span class="pill pill-admin">admin</span></td><td>全部标签</td><td>管理员，无限制访问</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div>
+
+<!-- 新增用户 Modal -->
+<div class="modal-mask" id="modal-add-user" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-title">新增用户</div>
+    <div class="form-row">
+      <label class="form-label">用户名</label>
+      <input class="form-input" id="nu-username" placeholder="登录用户名">
+    </div>
+    <div class="form-row">
+      <label class="form-label">姓名</label>
+      <input class="form-input" id="nu-name" placeholder="显示名称">
+    </div>
+    <div class="form-row">
+      <label class="form-label">密码</label>
+      <input class="form-input" type="password" id="nu-password" placeholder="初始密码">
+    </div>
+    <div class="form-row">
+      <label class="form-label">角色</label>
+      <select class="form-select" id="nu-role">
+        <option value="all">all · 普通员工</option>
+        <option value="hr">hr · HR</option>
+        <option value="dev">dev · 研发</option>
+        <option value="manager">manager · 管理层</option>
+        <option value="admin">admin · 管理员</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="document.getElementById('modal-add-user').style.display='none'">取消</button>
+      <button class="btn btn-primary" onclick="doAddUser()">创建用户</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+// ── 工具 ─────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id)
+
+function toast(msg, type='success') {
+  const el = $('toast')
+  el.textContent = msg
+  el.className = `toast toast-${type}`
+  el.style.display = 'block'
+  setTimeout(() => el.style.display = 'none', 3000)
+}
+
+function fmt(n) { return n?.toLocaleString() ?? '—' }
+
+function fmtSize(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB'
+  return (bytes/1024/1024).toFixed(1) + ' MB'
+}
+
+function pilsHtml(roles) {
+  return roles.map(r => `<span class="pill pill-${r}">${r}</span>`).join('')
+}
+
+function statusHtml(status) {
+  const map = {
+    indexed:  ['dot-ok',  '已索引'],
+    indexing: ['dot-ing', '索引中…'],
+    pending:  ['dot-pending', '等待中'],
+    error:    ['dot-err', '错误'],
+  }
+  const [cls, label] = map[status] || ['dot-pending', status]
+  return `<span class="status"><span class="dot ${cls}"></span>${label}</span>`
+}
+
+function fileIcon(type) {
+  return { PDF:'📕', DOCX:'📘', DOC:'📘', MD:'📝', TXT:'📄', XLSX:'📗', XLS:'📗' }[type] || '📄'
+}
+
+// ── 导航 ─────────────────────────────────────────────────────────────────────
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  $(`page-${page}`).classList.add('active')
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes(`'${page}'`)) n.classList.add('active')
+  })
+  if (page === 'docs')  { loadStats(); loadDocs() }
+  if (page === 'users') loadUsers()
+}
+
+// ── 统计 ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch('/api/docs/stats')
+    const d = await r.json()
+    $('s-docs').textContent  = fmt(d.total_docs)
+    $('s-nodes').textContent = fmt(d.total_nodes)
+    $('s-users').textContent = fmt(d.total_users)
+    if (d.errors > 0) {
+      $('s-status').textContent = `${d.errors} 错误`
+      $('s-status').className = 'stat-val warn'
+    } else if (d.pending > 0) {
+      $('s-status').textContent = `${d.pending} 索引中`
+      $('s-status').className = 'stat-val warn'
+    } else {
+      $('s-status').textContent = '正常'
+      $('s-status').className = 'stat-val ok'
+    }
+  } catch(e) { console.error(e) }
+}
+
+// ── 文档列表 ─────────────────────────────────────────────────────────────────
+async function loadDocs() {
+  const tbody = $('docs-table-body')
+  tbody.innerHTML = '<tr><td colspan="7" class="empty">加载中…</td></tr>'
+  try {
+    const docs = await fetch('/api/docs').then(r => r.json())
+    if (!docs.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无文档，请先上传</td></tr>'
+      return
+    }
+    tbody.innerHTML = docs.map(d => `
+      <tr>
+        <td>${fileIcon(d.doc_type)} ${d.filename}</td>
+        <td><span style="font-size:11px;background:#f5f5f0;padding:2px 6px;border-radius:4px">${d.doc_type}</span></td>
+        <td>${pilsHtml(d.roles)}</td>
+        <td>${d.node_count || '—'}</td>
+        <td style="color:#888;font-size:12px">${d.created_at?.slice(0,16) || '—'}</td>
+        <td>${statusHtml(d.status)}${d.error_msg ? `<div style="font-size:11px;color:#dc2626;margin-top:3px">${d.error_msg}</div>` : ''}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteDoc('${d.id}','${d.filename}')">删除</button></td>
+      </tr>
+    `).join('')
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">加载失败，请检查后端服务</td></tr>'
+  }
+}
+
+async function deleteDoc(id, name) {
+  if (!confirm(`确认删除「${name}」？\n此操作将同时清除该文档的所有向量数据，不可恢复。`)) return
+  try {
+    const r = await fetch(`/api/docs/${id}`, { method: 'DELETE' })
+    if (!r.ok) throw new Error((await r.json()).detail)
+    toast(`已删除：${name}`)
+    loadDocs(); loadStats()
+  } catch(e) { toast(e.message, 'error') }
+}
+
+// ── 文件上传 ─────────────────────────────────────────────────────────────────
+let selectedFile = null
+
+function onFileSelected(input) {
+  const file = input.files[0]
+  if (!file) return
+  selectedFile = file
+  const ext = file.name.split('.').pop().toUpperCase()
+  $('preview-icon').textContent = fileIcon(ext)
+  $('preview-name').textContent = file.name
+  $('preview-size').textContent = fmtSize(file.size)
+  $('file-preview').style.display = 'block'
+  $('drop-zone').style.display = 'none'
+}
+
+function clearUpload() {
+  selectedFile = null
+  $('file-input').value = ''
+  $('file-preview').style.display = 'none'
+  $('drop-zone').style.display = 'block'
+  $('upload-progress').style.display = 'none'
+}
+
+// 拖拽上传
+const dz = $('drop-zone')
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over') })
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'))
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over')
+  const file = e.dataTransfer.files[0]
+  if (file) { $('file-input').files = e.dataTransfer.files; onFileSelected($('file-input')) }
+})
+
+async function doUpload() {
+  if (!selectedFile) return toast('请先选择文件', 'error')
+
+  const checked = [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value)
+  if (!checked.length) return toast('请至少选择一个权限角色', 'error')
+
+  const btn = $('btn-upload')
+  btn.disabled = true
+  btn.textContent = '上传中…'
+  $('upload-progress').style.display = 'block'
+  $('progress-text').textContent = '正在上传文件…'
+  $('progress-fill').style.width = '30%'
+
+  const fd = new FormData()
+  fd.append('file', selectedFile)
+  fd.append('roles', JSON.stringify(checked))
+
+  try {
+    const r = await fetch('/api/docs/upload', { method: 'POST', body: fd })
+    const data = await r.json()
+    if (!r.ok) throw new Error(data.detail)
+
+    $('progress-fill').style.width = '70%'
+    $('progress-text').textContent = '文件已上传，后台正在建立索引…'
+
+    toast('上传成功！索引正在后台处理，请稍后刷新文档列表查看状态')
+    setTimeout(() => {
+      clearUpload()
+      nav('docs')
+    }, 1500)
+  } catch(e) {
+    toast(e.message, 'error')
+    $('upload-progress').style.display = 'none'
+  } finally {
+    btn.disabled = false
+    btn.textContent = '开始上传并索引'
+  }
+}
+
+// ── 用户管理 ─────────────────────────────────────────────────────────────────
+const ROLE_LABELS = {
+  all: '普通员工', hr: 'HR', dev: '研发',
+  manager: '管理层', admin: '管理员'
+}
+const ACCESSIBLE = {
+  all: ['all'],
+  hr:  ['hr', 'all'],
+  dev: ['dev', 'all'],
+  manager: ['manager', 'hr', 'dev', 'all'],
+  admin: ['admin', 'manager', 'hr', 'dev', 'all'],
+}
+
+async function loadUsers() {
+  const tbody = $('users-table-body')
+  tbody.innerHTML = '<tr><td colspan="6" class="empty">加载中…</td></tr>'
+  try {
+    const users = await fetch('/api/users').then(r => r.json())
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无用户</td></tr>'
+      return
+    }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><code style="font-size:12px;background:#f5f5f0;padding:2px 6px;border-radius:4px">${u.username}</code></td>
+        <td>${u.name}</td>
+        <td><span class="pill pill-${u.role}">${u.role}</span> <span style="color:#888;font-size:12px">${ROLE_LABELS[u.role]||''}</span></td>
+        <td>${(ACCESSIBLE[u.role]||[u.role]).map(r=>`<span class="pill pill-${r}">${r}</span>`).join(' ')}</td>
+        <td style="color:#888;font-size:12px">${u.created_at?.slice(0,10)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}','${u.username}')">删除</button></td>
+      </tr>
+    `).join('')
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">加载失败</td></tr>'
+  }
+}
+
+function showAddUserModal() {
+  $('nu-username').value = ''
+  $('nu-name').value = ''
+  $('nu-password').value = ''
+  $('nu-role').value = 'all'
+  $('modal-add-user').style.display = 'flex'
+}
+
+async function doAddUser() {
+  const body = {
+    username: $('nu-username').value.trim(),
+    name:     $('nu-name').value.trim(),
+    password: $('nu-password').value,
+    role:     $('nu-role').value,
+  }
+  if (!body.username || !body.name || !body.password)
+    return toast('请填写所有字段', 'error')
+
+  try {
+    const r = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    const data = await r.json()
+    if (!r.ok) throw new Error(data.detail)
+    toast(`用户「${body.name}」创建成功`)
+    $('modal-add-user').style.display = 'none'
+    loadUsers()
+  } catch(e) { toast(e.message, 'error') }
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`确认删除用户「${username}」？`)) return
+  try {
+    const r = await fetch(`/api/users/${id}`, { method: 'DELETE' })
+    if (!r.ok) throw new Error((await r.json()).detail)
+    toast('已删除用户')
+    loadUsers()
+  } catch(e) { toast(e.message, 'error') }
+}
+
+// ── 初始化 ────────────────────────────────────────────────────────────────────
+loadStats()
+loadDocs()
+// 每 8 秒自动刷新（检测索引状态变化）
+setInterval(() => {
+  if ($('page-docs').classList.contains('active')) {
+    loadDocs(); loadStats()
+  }
+}, 8000)
+</script>
+</body>
+</html>
