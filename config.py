@@ -18,6 +18,13 @@ QDRANT_URL          = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY      = os.getenv("QDRANT_API_KEY", "")   # 本地部署留空
 COLLECTION_NAME     = "company_kb"          # 统一集合名，所有文档存这里
 
+# ── MySQL ──────────────────────────────────────────────────
+MYSQL_HOST          = os.getenv("MYSQL_HOST", "localhost")
+MYSQL_PORT          = int(os.getenv("MYSQL_PORT", "3306"))
+MYSQL_USER          = os.getenv("MYSQL_USER", "root")
+MYSQL_PASSWORD      = os.getenv("MYSQL_PASSWORD", "")
+MYSQL_DATABASE      = os.getenv("MYSQL_DATABASE", "startech_kb")
+
 # ── 角色定义 ──────────────────────────────────────────────
 # 角色继承关系：admin > manager > hr / dev > all
 ROLE_HIERARCHY = {
