@@ -9,6 +9,43 @@
   body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
          font-size: 14px; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
 
+  /* ── 登录页 ─────────────────────────────────────────── */
+  #login-page {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: #f5f5f0;
+  }
+  .login-card {
+    background: #fff; border: 1px solid #e8e8e4; border-radius: 14px;
+    padding: 40px 36px; width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,.06);
+  }
+  .login-logo { text-align: center; margin-bottom: 28px; }
+  .login-logo-icon {
+    width: 52px; height: 52px; background: #eff6ff; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; margin: 0 auto 12px;
+  }
+  .login-logo h1 { font-size: 17px; font-weight: 500; }
+  .login-logo p  { font-size: 13px; color: #888; margin-top: 4px; }
+  .login-field { margin-bottom: 14px; }
+  .login-field label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+  .login-field input {
+    width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 14px; outline: none; transition: border .15s; background: #fafaf8;
+  }
+  .login-field input:focus { border-color: #1d4ed8; background: #fff; }
+  .btn-login {
+    width: 100%; padding: 10px; background: #1d4ed8; color: #fff; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
+    margin-top: 4px; transition: background .15s;
+  }
+  .btn-login:hover:not(:disabled) { background: #1e40af; }
+  .btn-login:disabled { background: #93c5fd; cursor: not-allowed; }
+  .login-error { font-size: 13px; color: #dc2626; margin-top: 10px; text-align: center; min-height: 20px; }
+  .login-hint  { font-size: 12px; color: #bbb; text-align: center; margin-top: 16px; }
+
+  /* ── 主界面（登录后） ───────────────────────────────── */
+  #app { display: none; }
+
   /* 顶栏 */
   .topbar { display: flex; align-items: center; justify-content: space-between;
             background: #fff; border-bottom: 1px solid #e8e8e4; padding: 0 24px;
@@ -18,6 +55,11 @@
   .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #666; }
   .badge { background: #fff0e6; color: #b45309; font-size: 11px; padding: 2px 8px;
            border-radius: 20px; font-weight: 500; }
+  .btn-logout {
+    font-size: 12px; color: #888; background: none; border: 1px solid #e8e8e4;
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: all .15s;
+  }
+  .btn-logout:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 
   /* 布局 */
   .layout { display: flex; min-height: calc(100vh - 52px); }
@@ -109,7 +151,7 @@
   .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
   .checkbox-item { display: flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; }
 
-  /* 提示 */
+  /* Toast */
   .toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 18px;
            border-radius: 8px; font-size: 13px; color: #fff; z-index: 9999;
            animation: slideIn .2s ease; pointer-events: none; }
@@ -120,17 +162,15 @@
   /* 空状态 */
   .empty { text-align: center; padding: 40px; color: #aaa; font-size: 13px; }
 
-  /* modal */
+  /* Modal */
   .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.35);
                 display: flex; align-items: center; justify-content: center; z-index: 200; }
   .modal { background: #fff; border-radius: 12px; padding: 24px; width: 440px; max-width: 90vw; }
   .modal-title { font-weight: 500; font-size: 15px; margin-bottom: 18px; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
-  /* 分隔线 */
   hr { border: none; border-top: 1px solid #f0f0ec; margin: 16px 0; }
 
-  /* 文件预览行 */
   .file-preview { display: flex; align-items: center; gap: 12px; padding: 10px 14px;
                   background: #f7f7f4; border-radius: 8px; margin-bottom: 14px; }
   .file-icon { font-size: 24px; }
@@ -146,165 +186,180 @@
 </head>
 <body>
 
-<!-- 顶栏 -->
-<div class="topbar">
-  <div class="logo">星辰科技<span>知识库管理后台</span></div>
-  <div class="user-info">
-    <span>管理员 · Charlie</span>
-    <span class="badge">admin</span>
+<!-- ══ 登录页 ══════════════════════════════════════════════ -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🔐</div>
+      <h1>管理后台登录</h1>
+      <p>星辰科技知识库 · 仅限管理员</p>
+    </div>
+    <div class="login-field">
+      <label>用户名</label>
+      <input id="l-username" placeholder="admin 账号" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>密码</label>
+      <input id="l-password" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-hint">仅 admin 角色可登录此后台</div>
   </div>
 </div>
 
-<div class="layout">
-  <!-- 侧边栏 -->
-  <div class="sidebar">
-    <div class="nav-section">MAIN</div>
-    <div class="nav-item active" onclick="nav('docs')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="2" y="1" width="9" height="13" rx="1.5"/><path d="M5 5h4M5 8h4M5 11h2"/><path d="M11 4l3 3v7a1 1 0 01-1 1H6"/>
-      </svg>文档管理
-    </div>
-    <div class="nav-item" onclick="nav('upload')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M8 10V3M5 6l3-3 3 3"/><path d="M3 13h10"/>
-      </svg>上传文档
-    </div>
-    <div class="nav-section">ADMIN</div>
-    <div class="nav-item" onclick="nav('users')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>
-      </svg>用户管理
+<!-- ══ 主界面 ═══════════════════════════════════════════════ -->
+<div id="app">
+  <!-- 顶栏 -->
+  <div class="topbar">
+    <div class="logo">星辰科技<span>知识库管理后台</span></div>
+    <div class="user-info">
+      <span id="topbar-name">—</span>
+      <span class="badge" id="topbar-role">admin</span>
+      <button class="btn-logout" onclick="doLogout()">退出登录</button>
     </div>
   </div>
 
-  <!-- 主内容 -->
-  <div class="main">
-
-    <!-- 文档管理页 -->
-    <div class="page active" id="page-docs">
-      <div class="page-title">文档管理</div>
-      <div class="page-desc">管理知识库中的所有文档，查看索引状态和权限配置</div>
-
-      <div class="stats" id="stats-bar">
-        <div class="stat-card"><div class="stat-val" id="s-docs">—</div><div class="stat-label">文档总数</div></div>
-        <div class="stat-card"><div class="stat-val" id="s-nodes">—</div><div class="stat-label">向量节点数</div></div>
-        <div class="stat-card"><div class="stat-val" id="s-users">—</div><div class="stat-label">用户数</div></div>
-        <div class="stat-card"><div class="stat-val ok" id="s-status">—</div><div class="stat-label">索引健康</div></div>
+  <div class="layout">
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+      <div class="nav-section">MAIN</div>
+      <div class="nav-item active" onclick="nav('docs')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="1" width="9" height="13" rx="1.5"/><path d="M5 5h4M5 8h4M5 11h2"/><path d="M11 4l3 3v7a1 1 0 01-1 1H6"/>
+        </svg>文档管理
       </div>
-
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">文档列表</span>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-sm" onclick="loadDocs()">↻ 刷新</button>
-            <button class="btn btn-primary btn-sm" onclick="nav('upload')">+ 上传文档</button>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>文件名</th><th>格式</th><th>权限角色</th>
-              <th>节点数</th><th>上传时间</th><th>状态</th><th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="docs-table-body">
-            <tr><td colspan="7" class="empty">加载中…</td></tr>
-          </tbody>
-        </table>
+      <div class="nav-item" onclick="nav('upload')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M8 10V3M5 6l3-3 3 3"/><path d="M3 13h10"/>
+        </svg>上传文档
+      </div>
+      <div class="nav-section">ADMIN</div>
+      <div class="nav-item" onclick="nav('users')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>
+        </svg>用户管理
       </div>
     </div>
 
-    <!-- 上传页 -->
-    <div class="page" id="page-upload">
-      <div class="page-title">上传文档</div>
-      <div class="page-desc">上传文档后系统自动解析并建立向量索引，支持 PDF · DOCX · MD · XLSX</div>
+    <!-- 主内容 -->
+    <div class="main">
 
-      <div class="card">
-        <!-- 上传区 -->
-        <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-          <div class="upload-icon">📄</div>
-          <div>点击选择文件，或将文件拖拽至此</div>
-          <div class="upload-hint">支持 PDF、DOCX、MD、TXT、XLSX · 单文件不超过 50MB</div>
-          <input type="file" id="file-input" accept=".pdf,.docx,.doc,.md,.txt,.xlsx,.xls" onchange="onFileSelected(this)">
+      <!-- 文档管理页 -->
+      <div class="page active" id="page-docs">
+        <div class="page-title">文档管理</div>
+        <div class="page-desc">管理知识库中的所有文档，查看索引状态和权限配置</div>
+
+        <div class="stats" id="stats-bar">
+          <div class="stat-card"><div class="stat-val" id="s-docs">—</div><div class="stat-label">文档总数</div></div>
+          <div class="stat-card"><div class="stat-val" id="s-nodes">—</div><div class="stat-label">向量节点数</div></div>
+          <div class="stat-card"><div class="stat-val" id="s-users">—</div><div class="stat-label">用户数</div></div>
+          <div class="stat-card"><div class="stat-val ok" id="s-status">—</div><div class="stat-label">索引健康</div></div>
         </div>
 
-        <!-- 文件预览（选中后显示） -->
-        <div id="file-preview" style="display:none">
-          <hr>
-          <div class="file-preview">
-            <span class="file-icon" id="preview-icon">📄</span>
-            <div>
-              <div class="file-name" id="preview-name"></div>
-              <div class="file-size" id="preview-size"></div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">文档列表</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="loadDocs()">↻ 刷新</button>
+              <button class="btn btn-primary btn-sm" onclick="nav('upload')">+ 上传文档</button>
             </div>
           </div>
+          <table>
+            <thead>
+              <tr><th>文件名</th><th>格式</th><th>权限角色</th><th>节点数</th><th>上传时间</th><th>状态</th><th>操作</th></tr>
+            </thead>
+            <tbody id="docs-table-body">
+              <tr><td colspan="7" class="empty">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          <!-- 权限配置 -->
-          <div class="form-row">
-            <label class="form-label">访问权限 <span style="color:#dc2626">*</span></label>
-            <div class="checkbox-group">
-              <label class="checkbox-item"><input type="checkbox" value="all"> 全员（all）</label>
-              <label class="checkbox-item"><input type="checkbox" value="hr"> HR（hr）</label>
-              <label class="checkbox-item"><input type="checkbox" value="dev"> 研发（dev）</label>
-              <label class="checkbox-item"><input type="checkbox" value="manager"> 管理层（manager）</label>
-              <label class="checkbox-item"><input type="checkbox" value="admin"> 管理员（admin）</label>
-            </div>
-            <div style="font-size:12px;color:#888;margin-top:6px">
-              提示：勾选"全员"则所有人可访问；勾选"hr"则 hr 和 admin 角色可访问（继承关系自动处理）
-            </div>
+      <!-- 上传页 -->
+      <div class="page" id="page-upload">
+        <div class="page-title">上传文档</div>
+        <div class="page-desc">上传文档后系统自动解析并建立向量索引，支持 PDF · DOCX · MD · XLSX</div>
+
+        <div class="card">
+          <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <div class="upload-icon">📄</div>
+            <div>点击选择文件，或将文件拖拽至此</div>
+            <div class="upload-hint">支持 PDF、DOCX、MD、TXT、XLSX · 单文件不超过 50MB</div>
+            <input type="file" id="file-input" accept=".pdf,.docx,.doc,.md,.txt,.xlsx,.xls" onchange="onFileSelected(this)">
           </div>
 
-          <!-- 进度 -->
-          <div id="upload-progress" style="display:none">
-            <div style="font-size:13px;color:#555;margin-bottom:4px" id="progress-text">正在上传…</div>
-            <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-          </div>
+          <div id="file-preview" style="display:none">
+            <hr>
+            <div class="file-preview">
+              <span class="file-icon" id="preview-icon">📄</span>
+              <div>
+                <div class="file-name" id="preview-name"></div>
+                <div class="file-size" id="preview-size"></div>
+              </div>
+            </div>
 
-          <div style="display:flex;gap:8px;margin-top:14px">
-            <button class="btn btn-primary" onclick="doUpload()" id="btn-upload">开始上传并索引</button>
-            <button class="btn" onclick="clearUpload()">取消</button>
+            <div class="form-row">
+              <label class="form-label">访问权限 <span style="color:#dc2626">*</span></label>
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="all"> 全员（all）</label>
+                <label class="checkbox-item"><input type="checkbox" value="hr"> HR（hr）</label>
+                <label class="checkbox-item"><input type="checkbox" value="dev"> 研发（dev）</label>
+                <label class="checkbox-item"><input type="checkbox" value="manager"> 管理层（manager）</label>
+                <label class="checkbox-item"><input type="checkbox" value="admin"> 管理员（admin）</label>
+              </div>
+            </div>
+
+            <div id="upload-progress" style="display:none">
+              <div style="font-size:13px;color:#555;margin-bottom:4px" id="progress-text">正在上传…</div>
+              <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <button class="btn btn-primary" onclick="doUpload()" id="btn-upload">开始上传并索引</button>
+              <button class="btn" onclick="clearUpload()">取消</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 用户管理页 -->
-    <div class="page" id="page-users">
-      <div class="page-title">用户管理</div>
-      <div class="page-desc">管理系统用户，配置角色权限。角色决定用户可访问的知识库范围。</div>
+      <!-- 用户管理页 -->
+      <div class="page" id="page-users">
+        <div class="page-title">用户管理</div>
+        <div class="page-desc">管理系统用户，配置角色权限。角色决定用户可访问的知识库范围。</div>
 
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">用户列表</span>
-          <button class="btn btn-primary btn-sm" onclick="showAddUserModal()">+ 新增用户</button>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">用户列表</span>
+            <button class="btn btn-primary btn-sm" onclick="showAddUserModal()">+ 新增用户</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>用户名</th><th>姓名</th><th>角色</th><th>可访问标签</th><th>创建时间</th><th>操作</th></tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr><td colspan="6" class="empty">加载中…</td></tr>
+            </tbody>
+          </table>
         </div>
-        <table>
-          <thead>
-            <tr><th>用户名</th><th>姓名</th><th>角色</th><th>可访问标签</th><th>创建时间</th><th>操作</th></tr>
-          </thead>
-          <tbody id="users-table-body">
-            <tr><td colspan="6" class="empty">加载中…</td></tr>
-          </tbody>
-        </table>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">角色继承说明</span></div>
+          <table>
+            <thead><tr><th>角色</th><th>可访问的文档标签</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill pill-all">all</span></td><td>all</td><td>普通员工，仅全员文档</td></tr>
+              <tr><td><span class="pill pill-hr">hr</span></td><td>hr · all</td><td>HR，可见 HR 专属 + 全员文档</td></tr>
+              <tr><td><span class="pill pill-dev">dev</span></td><td>dev · all</td><td>研发，可见研发专属 + 全员文档</td></tr>
+              <tr><td><span class="pill pill-manager">manager</span></td><td>manager · hr · dev · all</td><td>管理层，可见大部分文档</td></tr>
+              <tr><td><span class="pill pill-admin">admin</span></td><td>全部标签</td><td>管理员，无限制访问</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- 角色说明 -->
-      <div class="card">
-        <div class="card-header"><span class="card-title">角色继承说明</span></div>
-        <table>
-          <thead><tr><th>角色</th><th>可访问的文档标签</th><th>说明</th></tr></thead>
-          <tbody>
-            <tr><td><span class="pill pill-all">all</span></td><td>all</td><td>普通员工，仅全员文档</td></tr>
-            <tr><td><span class="pill pill-hr">hr</span></td><td>hr · all</td><td>HR，可见 HR 专属 + 全员文档</td></tr>
-            <tr><td><span class="pill pill-dev">dev</span></td><td>dev · all</td><td>研发，可见研发专属 + 全员文档</td></tr>
-            <tr><td><span class="pill pill-manager">manager</span></td><td>manager · hr · dev · all</td><td>管理层，可见大部分文档</td></tr>
-            <tr><td><span class="pill pill-admin">admin</span></td><td>全部标签</td><td>管理员，无限制访问</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div><!-- /main -->
+    </div><!-- /main -->
+  </div>
 </div>
 
 <!-- 新增用户 Modal -->
@@ -340,14 +395,104 @@
   </div>
 </div>
 
-<!-- Toast -->
 <div id="toast" class="toast" style="display:none"></div>
 
 <script>
-// ── 工具 ─────────────────────────────────────────────────────────────────────
+// ── Token 管理 ────────────────────────────────────────────
+const TOKEN_KEY = 'admin_token'
+const ME_KEY    = 'admin_me'
+
+let adminToken = localStorage.getItem(TOKEN_KEY)
+let adminMe    = JSON.parse(localStorage.getItem(ME_KEY) || 'null')
+
+// 所有 API 请求统一带 Authorization 头
+function authHeaders(extra = {}) {
+  return {
+    'Authorization': `Bearer ${adminToken}`,
+    ...extra,
+  }
+}
+
+// ── 初始化：有 token 直接进主界面，否则显示登录页 ───────
+if (adminToken && adminMe) {
+  showApp()
+} else {
+  showLogin()
+}
+
+function showLogin() {
+  document.getElementById('login-page').style.display = 'flex'
+  document.getElementById('app').style.display = 'none'
+}
+
+function showApp() {
+  document.getElementById('login-page').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  document.getElementById('topbar-name').textContent = adminMe?.name || '—'
+  loadStats()
+  loadDocs()
+  // 每 8 秒自动刷新文档状态
+  setInterval(() => {
+    if (document.getElementById('page-docs').classList.contains('active')) {
+      loadDocs(); loadStats()
+    }
+  }, 8000)
+}
+
+// ── 登录 ─────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('l-username').value.trim()
+  const password = document.getElementById('l-password').value
+  const errEl    = document.getElementById('login-error')
+  const btn      = document.getElementById('btn-login')
+
+  errEl.textContent = ''
+  if (!username || !password) { errEl.textContent = '请输入用户名和密码'; return }
+
+  btn.textContent = '登录中…'; btn.disabled = true
+  try {
+    const r = await fetch('/api/users/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.detail || '登录失败')
+
+    adminToken = d.token
+    adminMe    = { username: d.username, name: d.name, role: d.role }
+    localStorage.setItem(TOKEN_KEY, adminToken)
+    localStorage.setItem(ME_KEY, JSON.stringify(adminMe))
+    showApp()
+  } catch (e) {
+    errEl.textContent = e.message
+  } finally {
+    btn.textContent = '登 录'; btn.disabled = false
+  }
+}
+
+// ── 退出登录 ─────────────────────────────────────────────
+function doLogout() {
+  adminToken = null; adminMe = null
+  localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(ME_KEY)
+  showLogin()
+}
+
+// ── 统一处理 401（token 过期自动跳回登录页）────────────
+async function apiFetch(url, options = {}) {
+  const resp = await fetch(url, options)
+  if (resp.status === 401) {
+    doLogout()
+    toast('登录已过期，请重新登录', 'error')
+    throw new Error('401')
+  }
+  return resp
+}
+
+// ── 工具 ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id)
 
-function toast(msg, type='success') {
+function toast(msg, type = 'success') {
   const el = $('toast')
   el.textContent = msg
   el.className = `toast toast-${type}`
@@ -356,18 +501,15 @@ function toast(msg, type='success') {
 }
 
 function fmt(n) { return n?.toLocaleString() ?? '—' }
-
 function fmtSize(bytes) {
   if (!bytes) return ''
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB'
   return (bytes/1024/1024).toFixed(1) + ' MB'
 }
-
-function pilsHtml(roles) {
+function pillsHtml(roles) {
   return roles.map(r => `<span class="pill pill-${r}">${r}</span>`).join('')
 }
-
 function statusHtml(status) {
   const map = {
     indexed:  ['dot-ok',  '已索引'],
@@ -378,12 +520,11 @@ function statusHtml(status) {
   const [cls, label] = map[status] || ['dot-pending', status]
   return `<span class="status"><span class="dot ${cls}"></span>${label}</span>`
 }
-
 function fileIcon(type) {
   return { PDF:'📕', DOCX:'📘', DOC:'📘', MD:'📝', TXT:'📄', XLSX:'📗', XLS:'📗' }[type] || '📄'
 }
 
-// ── 导航 ─────────────────────────────────────────────────────────────────────
+// ── 导航 ─────────────────────────────────────────────────
 function nav(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
@@ -395,10 +536,10 @@ function nav(page) {
   if (page === 'users') loadUsers()
 }
 
-// ── 统计 ─────────────────────────────────────────────────────────────────────
+// ── 统计 ─────────────────────────────────────────────────
 async function loadStats() {
   try {
-    const r = await fetch('/api/docs/stats')
+    const r = await apiFetch('/api/docs/stats', { headers: authHeaders() })
     const d = await r.json()
     $('s-docs').textContent  = fmt(d.total_docs)
     $('s-nodes').textContent = fmt(d.total_nodes)
@@ -413,15 +554,16 @@ async function loadStats() {
       $('s-status').textContent = '正常'
       $('s-status').className = 'stat-val ok'
     }
-  } catch(e) { console.error(e) }
+  } catch(e) { if (e.message !== '401') console.error(e) }
 }
 
-// ── 文档列表 ─────────────────────────────────────────────────────────────────
+// ── 文档列表 ─────────────────────────────────────────────
 async function loadDocs() {
   const tbody = $('docs-table-body')
   tbody.innerHTML = '<tr><td colspan="7" class="empty">加载中…</td></tr>'
   try {
-    const docs = await fetch('/api/docs').then(r => r.json())
+    const r    = await apiFetch('/api/docs', { headers: authHeaders() })
+    const docs = await r.json()
     if (!docs.length) {
       tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无文档，请先上传</td></tr>'
       return
@@ -430,7 +572,7 @@ async function loadDocs() {
       <tr>
         <td>${fileIcon(d.doc_type)} ${d.filename}</td>
         <td><span style="font-size:11px;background:#f5f5f0;padding:2px 6px;border-radius:4px">${d.doc_type}</span></td>
-        <td>${pilsHtml(d.roles)}</td>
+        <td>${pillsHtml(d.roles)}</td>
         <td>${d.node_count || '—'}</td>
         <td style="color:#888;font-size:12px">${d.created_at?.slice(0,16) || '—'}</td>
         <td>${statusHtml(d.status)}${d.error_msg ? `<div style="font-size:11px;color:#dc2626;margin-top:3px">${d.error_msg}</div>` : ''}</td>
@@ -438,21 +580,25 @@ async function loadDocs() {
       </tr>
     `).join('')
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">加载失败，请检查后端服务</td></tr>'
+    if (e.message !== '401')
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">加载失败，请检查后端服务</td></tr>'
   }
 }
 
 async function deleteDoc(id, name) {
   if (!confirm(`确认删除「${name}」？\n此操作将同时清除该文档的所有向量数据，不可恢复。`)) return
   try {
-    const r = await fetch(`/api/docs/${id}`, { method: 'DELETE' })
+    const r = await apiFetch(`/api/docs/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
     if (!r.ok) throw new Error((await r.json()).detail)
     toast(`已删除：${name}`)
     loadDocs(); loadStats()
-  } catch(e) { toast(e.message, 'error') }
+  } catch(e) { if (e.message !== '401') toast(e.message, 'error') }
 }
 
-// ── 文件上传 ─────────────────────────────────────────────────────────────────
+// ── 文件上传 ─────────────────────────────────────────────
 let selectedFile = null
 
 function onFileSelected(input) {
@@ -475,7 +621,6 @@ function clearUpload() {
   $('upload-progress').style.display = 'none'
 }
 
-// 拖拽上传
 const dz = $('drop-zone')
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over') })
 dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'))
@@ -487,13 +632,11 @@ dz.addEventListener('drop', e => {
 
 async function doUpload() {
   if (!selectedFile) return toast('请先选择文件', 'error')
-
   const checked = [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value)
   if (!checked.length) return toast('请至少选择一个权限角色', 'error')
 
   const btn = $('btn-upload')
-  btn.disabled = true
-  btn.textContent = '上传中…'
+  btn.disabled = true; btn.textContent = '上传中…'
   $('upload-progress').style.display = 'block'
   $('progress-text').textContent = '正在上传文件…'
   $('progress-fill').style.width = '30%'
@@ -503,45 +646,40 @@ async function doUpload() {
   fd.append('roles', JSON.stringify(checked))
 
   try {
-    const r = await fetch('/api/docs/upload', { method: 'POST', body: fd })
+    const r = await apiFetch('/api/docs/upload', {
+      method: 'POST',
+      headers: authHeaders(),   // 注意：FormData 不能加 Content-Type，让浏览器自动设置
+      body: fd,
+    })
     const data = await r.json()
     if (!r.ok) throw new Error(data.detail)
 
     $('progress-fill').style.width = '70%'
     $('progress-text').textContent = '文件已上传，后台正在建立索引…'
-
     toast('上传成功！索引正在后台处理，请稍后刷新文档列表查看状态')
-    setTimeout(() => {
-      clearUpload()
-      nav('docs')
-    }, 1500)
+    setTimeout(() => { clearUpload(); nav('docs') }, 1500)
   } catch(e) {
-    toast(e.message, 'error')
+    if (e.message !== '401') toast(e.message, 'error')
     $('upload-progress').style.display = 'none'
   } finally {
-    btn.disabled = false
-    btn.textContent = '开始上传并索引'
+    btn.disabled = false; btn.textContent = '开始上传并索引'
   }
 }
 
-// ── 用户管理 ─────────────────────────────────────────────────────────────────
-const ROLE_LABELS = {
-  all: '普通员工', hr: 'HR', dev: '研发',
-  manager: '管理层', admin: '管理员'
-}
-const ACCESSIBLE = {
-  all: ['all'],
-  hr:  ['hr', 'all'],
-  dev: ['dev', 'all'],
-  manager: ['manager', 'hr', 'dev', 'all'],
-  admin: ['admin', 'manager', 'hr', 'dev', 'all'],
+// ── 用户管理 ─────────────────────────────────────────────
+const ROLE_LABELS  = { all:'普通员工', hr:'HR', dev:'研发', manager:'管理层', admin:'管理员' }
+const ACCESSIBLE   = {
+  all: ['all'], hr: ['hr','all'], dev: ['dev','all'],
+  manager: ['manager','hr','dev','all'],
+  admin:   ['admin','manager','hr','dev','all'],
 }
 
 async function loadUsers() {
   const tbody = $('users-table-body')
   tbody.innerHTML = '<tr><td colspan="6" class="empty">加载中…</td></tr>'
   try {
-    const users = await fetch('/api/users').then(r => r.json())
+    const r     = await apiFetch('/api/users', { headers: authHeaders() })
+    const users = await r.json()
     if (!users.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无用户</td></tr>'
       return
@@ -557,7 +695,8 @@ async function loadUsers() {
       </tr>
     `).join('')
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">加载失败</td></tr>'
+    if (e.message !== '401')
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">加载失败</td></tr>'
   }
 }
 
@@ -580,38 +719,31 @@ async function doAddUser() {
     return toast('请填写所有字段', 'error')
 
   try {
-    const r = await fetch('/api/users', {
+    const r = await apiFetch('/api/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
     })
     const data = await r.json()
     if (!r.ok) throw new Error(data.detail)
     toast(`用户「${body.name}」创建成功`)
     $('modal-add-user').style.display = 'none'
     loadUsers()
-  } catch(e) { toast(e.message, 'error') }
+  } catch(e) { if (e.message !== '401') toast(e.message, 'error') }
 }
 
 async function deleteUser(id, username) {
   if (!confirm(`确认删除用户「${username}」？`)) return
   try {
-    const r = await fetch(`/api/users/${id}`, { method: 'DELETE' })
+    const r = await apiFetch(`/api/users/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
     if (!r.ok) throw new Error((await r.json()).detail)
     toast('已删除用户')
     loadUsers()
-  } catch(e) { toast(e.message, 'error') }
+  } catch(e) { if (e.message !== '401') toast(e.message, 'error') }
 }
-
-// ── 初始化 ────────────────────────────────────────────────────────────────────
-loadStats()
-loadDocs()
-// 每 8 秒自动刷新（检测索引状态变化）
-setInterval(() => {
-  if ($('page-docs').classList.contains('active')) {
-    loadDocs(); loadStats()
-  }
-}, 8000)
 </script>
 </body>
 </html>

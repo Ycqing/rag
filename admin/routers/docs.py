@@ -1,17 +1,22 @@
 """
-routers/docs.py  —  文档管理 API
+admin/routers/docs.py  —  文档管理 API
 
 POST   /api/docs/upload     上传文档并触发异步入库
 GET    /api/docs            获取文档列表
 DELETE /api/docs/{doc_id}   删除文档（同时清除向量）
+GET    /api/docs/stats      统计数据
+
+修改说明（相对原版）：
+  - 所有路由加 dependencies=[Depends(verify_admin_token)]，其余逻辑完全不变
 """
 
 import json
 import asyncio
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Depends
 
 from admin.services import store, ingest
+from admin.services.auth import verify_admin_token
 
 router = APIRouter(prefix="/api/docs", tags=["documents"])
 
@@ -22,13 +27,13 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".md", ".txt", ".xlsx", ".xls"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(verify_admin_token)])
 def list_docs():
     """获取所有文档列表"""
     return store.list_documents()
 
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[Depends(verify_admin_token)])
 async def upload_doc(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -59,7 +64,7 @@ async def upload_doc(
     save_path = UPLOAD_DIR / file.filename
     save_path.write_bytes(content)
 
-    # 写入 SQLite，状态为 pending
+    # 写入数据库，状态为 pending
     doc_id = store.create_document(
         filename=file.filename,
         doc_type=suffix.lstrip(".").upper(),
@@ -73,9 +78,9 @@ async def upload_doc(
     return {"doc_id": doc_id, "status": "pending", "message": "文件已上传，正在后台索引"}
 
 
-@router.delete("/{doc_id}")
+@router.delete("/{doc_id}", dependencies=[Depends(verify_admin_token)])
 async def delete_doc(doc_id: str):
-    """删除文档：同时删除 SQLite 记录和 Qdrant 向量"""
+    """删除文档：同时删除数据库记录、Qdrant 向量和磁盘文件"""
     doc = store.get_document(doc_id)
     if not doc:
         raise HTTPException(404, "文档不存在")
@@ -86,17 +91,17 @@ async def delete_doc(doc_id: str):
     except Exception as e:
         raise HTTPException(500, f"删除向量失败: {e}")
 
-    # 删除文件
+    # 删除磁盘文件
     file_path = UPLOAD_DIR / doc["filename"]
     if file_path.exists():
         file_path.unlink()
 
-    # 删除 SQLite 记录
+    # 删除数据库记录
     store.delete_document(doc_id)
     return {"message": "删除成功"}
 
 
-@router.get("/stats")
+@router.get("/stats", dependencies=[Depends(verify_admin_token)])
 def get_stats():
     """获取统计数据"""
     return store.get_stats()

@@ -1,4 +1,4 @@
-管理端包含知识库搭建（上传文档，解析文档，添加到向量库），按权限查询向量库，文档管理和用户管理数据库使用的sqlite
+管理端包含知识库搭建（上传文档，解析文档，添加到向量库），按权限查询向量库，文档管理和用户管理数据库使用的mysql
 文档支持doc/docx/pdf/xls/xlsx/md/txt
 暂不支持图片类型的pdf识别
 
@@ -24,7 +24,14 @@ pip install -r requirements.txt
 
 docker run -itd -p 6333:6333 qdrant/qdrant
 
-使用阿里百炼的apikey，使用LLM等模型
+
+创建数据库 存储管理端数据，用户和文档信息
+
+
+CREATE DATABASE startech_kb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+使用阿里百炼的apikey，使用LLM等模型，其他的配置可在env里自行修改
 
 
 echo "DASHSCOPE_API_KEY=sk-xxx" > .env

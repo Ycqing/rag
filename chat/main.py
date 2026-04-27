@@ -4,6 +4,10 @@ chat/main.py（v2）—  接入 Agent 工具调用
 启动：
   cd rag_rbac
   uvicorn chat.main:app --reload --port 8002
+
+修改说明（相对原版）：
+  - JWT_SECRET / JWT_ALGORITHM / JWT_EXPIRE_H 改从 config 读取，不再硬编码
+  - 其余逻辑（Agent、MCP、历史、流式输出）完全不变
 """
 
 import sys, json, datetime, asyncio
@@ -26,9 +30,12 @@ from chat.tools.agent import run_agent
 app      = FastAPI(title="星辰科技知识库问答 v2")
 security = HTTPBearer()
 
-JWT_SECRET    = "startech-secret-change-in-production"
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_H  = 8
+# ── 改动点 1：常量改从 config 读取，不再硬编码 ────────────
+JWT_SECRET    = config.JWT_SECRET
+JWT_ALGORITHM = config.JWT_ALGORITHM
+JWT_EXPIRE_H  = config.JWT_EXPIRE_HOURS
+# ─────────────────────────────────────────────────────────
+
 HISTORY: dict[str, list] = {}
 MAX_HISTORY = 40
 
@@ -59,10 +66,13 @@ class LoginReq(BaseModel):
     username: str
     password: str
 
+# ── 改动点 2：登录时用 verify_password 做哈希比对，不再明文比较 ──
+from admin.services.auth import verify_password
+
 @app.post("/auth/login")
 def login(req: LoginReq):
     user = get_user_by_username(req.username)
-    if not user or user["password"] != req.password:
+    if not user or not verify_password(req.password, user["password"]):
         raise HTTPException(401, "用户名或密码错误")
     return {"token": make_token(user), "user": {
         "id": user["id"], "username": user["username"],

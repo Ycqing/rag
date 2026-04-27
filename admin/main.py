@@ -6,14 +6,20 @@ admin/main.py  —  管理后台 FastAPI 主入口
     uvicorn admin.main:app --reload --port 8001
 
 访问：http://localhost:8001
+
+修改说明（相对原版）：
+  - 新增 GET /api/admin/me，前端登录后用于获取当前 admin 信息
+  - 路由认证通过各 router 内的 Depends(verify_admin_token) 声明
+  - 静态文件、SPA 路由、启动事件完全不变
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
 from admin.services.store import init_db
+from admin.services.auth import verify_admin_token
 from admin.routers import docs, users
 
 app = FastAPI(title="星辰科技知识库管理后台", version="1.0.0")
@@ -27,6 +33,15 @@ def on_startup():
 # 注册路由
 app.include_router(docs.router)
 app.include_router(users.router)
+
+# 当前登录的 admin 信息（供前端顶栏展示用）
+@app.get("/api/admin/me")
+def admin_me(admin=Depends(verify_admin_token)):
+    return {
+        "username": admin["username"],
+        "name":     admin["name"],
+        "role":     admin["role"],
+    }
 
 # 挂载静态文件目录
 STATIC_DIR = Path(__file__).parent / "static"
